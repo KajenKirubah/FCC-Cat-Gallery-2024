@@ -1,29 +1,29 @@
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
+const currentTask = process.env.npm_lifecycle_event;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
-let currentTask = process.env.npm_lifecycle_event;
+//need htmlwebpackplugin, minicssextractplugin, cssminimizer, 
+//need postcss plugins- autoprefixer, postcss-nested, postcss-import, postcss-mixins
 
 let postCSSPlugins = [
     require('autoprefixer'),
-    require('postcss-import'),
     require('postcss-nested'),
+    require('postcss-import'),
     require('postcss-mixins')
 ]
 
 let cssConfig = {
     test: /\.css$/i,
-    use: [
-        'css-loader'
-    ]
-};
+    use: ['css-loader']
+}
 
 let config = {
     entry: {
-        App: './assets/scripts/app.js'
+        app: './assets/scripts/app.js'
     },
-    plugins: [new HtmlWebpackPlugin({ filename: 'index.html', template: './app/assets/index.html' })],
+    plugins: [new HtmlWebpackPlugin({ filename: 'index.html', template: './assets/index.html' })],
     module: {
         rules: [
             cssConfig
@@ -31,33 +31,29 @@ let config = {
     }
 }
 
-if (currentTask == 'build') {
-    config.mode = 'production';
+if (currentTask == "build") {
+    config.mode = "production";
+    cssConfig.use.unshift(MiniCssExtractPlugin.loader);
     config.output = {
+        path: path.resolve(__dirname, "dist"),
         filename: '[name].[contenthash].js',
         chunkFilename: '[name].[contenthash].js',
-        path: path.resolve(__dirname, 'app/assets'),
         clean: true
     }
-    config.plugins.push(new MiniCssExtractPlugin({filename: 'styles.[contenthash].css'}))
     config.optimization = {
         splitChunks: {
             chunks: 'all',
-            minSize: 1000
+            minSize: 3000
         },
         minimize: true,
         minimizer: [`...`, new CssMinimizerPlugin()]
     }
-    cssConfig.use.unshift(MiniCssExtractPlugin.loader);
+    config.plugins.push(new MiniCssExtractPlugin({ filename: 'styles.[contenthash].css' })) 
 }
 
-if (currentTask == 'dev') {
-    config.mode = 'development';
-    config.output = {
-        path: path.resolve(__dirname, 'dist'),
-        clean: true
-    },
-    cssConfig.use.unshift('style-loader');
+if (currentTask == "dev") {
+    config.mode = "development";
+    cssConfig.use.unshift("style-loader");
     cssConfig.use.push({
         loader: 'postcss-loader',
         options: {
@@ -65,15 +61,18 @@ if (currentTask == 'dev') {
                 plugins: postCSSPlugins
             }
         }
-    })
+    });
+    config.output = {
+        path: path.resolve(__dirname, 'assets')
+    }
     config.devServer = {
-        watchFiles: ['./app/**/*.html'],
+        watchFiles: ["./assets/**/*.html"],
         static: {
-            directory: path.resolve(__dirname, 'app/assets')
+            directory: path.resolve(__dirname, "assets")
         },
-        hot: true,
         port: 3000,
-        local: '0.0.0.0'
+        hot: true,
+        host: '0.0.0.0'
     }
 }
 
